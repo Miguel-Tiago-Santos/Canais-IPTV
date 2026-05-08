@@ -16,9 +16,6 @@
     .channel:hover{background:#333;}
     .channel.active{background:#0078d7;}
     #status{position:absolute;top:20px;left:370px;background:rgba(0,0,0,0.9);color:white;padding:12px 18px;border-radius:8px;z-index:70;}
-    #controls{position:absolute;top:20px;right:20px;display:flex;gap:8px;z-index:75;}
-    button, #proxyInfo{background:rgba(0,0,0,0.8);color:#0f0;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;font-size:13px;}
-    button:hover{background:rgba(0,0,0,0.95);}
     #soundBtn{position:absolute;bottom:30px;right:30px;padding:14px 24px;font-size:18px;background:#0078d7;color:white;border:none;border-radius:8px;cursor:pointer;display:none;z-index:80;}
 </style>
 </head>
@@ -32,27 +29,14 @@
 
     <div id="player">
         <div id="status">A carregar RTP 1...</div>
-        <div id="controls">
-            <div id="proxyInfo">Proxy 0/6</div>
-            <button onclick="nextProxy()">Próximo Proxy</button>
-        </div>
         <video id="video" autoplay playsinline controls></video>
         <button id="soundBtn">🔊 Ativar Som</button>
     </div>
 </div>
 
 <script>
-// ==================== TODOS OS PROXIES DISPONÍVEIS ====================
-const PROXIES = [
-    "",                                 // 0 - Direct
-    "https://api.codetabs.com/v1/proxy?quest=",
-    "https://allorigins.win/raw?url=",
-    "https://cors.lol/?url=",
-    "https://corsproxy.io/?",
-    "https://proxy.cors.sh/"
-];
-
-let currentIndex = 0;
+// === COLA AQUI O LINK DO TEU WORKER ===
+const WORKER_URL = "https://SEU-WORKER-NOME.workers.dev";
 
 const playlistText = `
 #EXTM3U
@@ -73,8 +57,6 @@ https://sicnot.live.impresa.pt/sicnot.m3u8
 const video = document.getElementById("video");
 const statusDiv = document.getElementById("status");
 const soundBtn = document.getElementById("soundBtn");
-const proxyInfo = document.getElementById("proxyInfo");
-
 let hls = null;
 let channels = parseM3U(playlistText);
 
@@ -82,18 +64,7 @@ renderChannels();
 playChannel(channels[0]);
 
 function getUrl(url) {
-    const proxy = PROXIES[currentIndex];
-    return proxy ? proxy + encodeURIComponent(url) : url;
-}
-
-function updateInfo() {
-    proxyInfo.textContent = `Proxy ${currentIndex}/${PROXIES.length-1}`;
-}
-
-function nextProxy() {
-    currentIndex = (currentIndex + 1) % PROXIES.length;
-    updateInfo();
-    reloadCurrentChannel();
+    return `${WORKER_URL}?url=${encodeURIComponent(url)}`;
 }
 
 function parseM3U(text) {
@@ -120,14 +91,6 @@ function renderChannels() {
     });
 }
 
-function reloadCurrentChannel() {
-    const active = document.querySelector(".channel.active");
-    if (active) {
-        const ch = channels.find(c => c.name === active.textContent);
-        if (ch) playChannel(ch);
-    }
-}
-
 function playChannel(channel) {
     document.querySelectorAll(".channel").forEach(el => 
         el.classList.toggle("active", el.textContent === channel.name)
@@ -143,19 +106,13 @@ function playChannel(channel) {
     const finalUrl = getUrl(channel.url);
 
     if (Hls.isSupported()) {
-        hls = new Hls({ xhrSetup: xhr => xhr.withCredentials = false });
+        hls = new Hls();
         hls.loadSource(finalUrl);
         hls.attachMedia(video);
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
             video.play().catch(() => {});
             statusDiv.style.display = "none";
-        });
-
-        hls.on(Hls.Events.ERROR, (event, data) => {
-            if (data.fatal) {
-                statusDiv.textContent = "Falhou - Clique em Próximo Proxy";
-            }
         });
     } else {
         video.src = finalUrl;
