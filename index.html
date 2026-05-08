@@ -33,7 +33,7 @@
     <div id="player">
         <div id="status">A carregar RTP 1...</div>
         <div id="controls">
-            <div id="proxyInfo">Direct</div>
+            <div id="proxyInfo">Proxy 0/6</div>
             <button onclick="nextProxy()">Próximo Proxy</button>
         </div>
         <video id="video" autoplay playsinline controls></video>
@@ -42,9 +42,9 @@
 </div>
 
 <script>
-// ==================== TODOS OS PROXIES ====================
+// ==================== TODOS OS PROXIES DISPONÍVEIS ====================
 const PROXIES = [
-    "", // Direct (sem proxy)
+    "",                                 // 0 - Direct
     "https://api.codetabs.com/v1/proxy?quest=",
     "https://allorigins.win/raw?url=",
     "https://cors.lol/?url=",
@@ -81,20 +81,18 @@ let channels = parseM3U(playlistText);
 renderChannels();
 playChannel(channels[0]);
 
-function getCurrentUrl(url) {
+function getUrl(url) {
     const proxy = PROXIES[currentIndex];
     return proxy ? proxy + encodeURIComponent(url) : url;
 }
 
-function updateProxyInfo() {
-    const proxy = PROXIES[currentIndex];
-    proxyInfo.textContent = proxy ? `Proxy ${currentIndex}/${PROXIES.length-1}` : "Direct";
-    proxyInfo.style.color = proxy ? "#0f0" : "#ff0";
+function updateInfo() {
+    proxyInfo.textContent = `Proxy ${currentIndex}/${PROXIES.length-1}`;
 }
 
 function nextProxy() {
     currentIndex = (currentIndex + 1) % PROXIES.length;
-    updateProxyInfo();
+    updateInfo();
     reloadCurrentChannel();
 }
 
@@ -142,12 +140,10 @@ function playChannel(channel) {
     video.pause();
     video.src = "";
 
-    const finalUrl = getCurrentUrl(channel.url);
+    const finalUrl = getUrl(channel.url);
 
     if (Hls.isSupported()) {
-        hls = new Hls({
-            xhrSetup: xhr => xhr.withCredentials = false
-        });
+        hls = new Hls({ xhrSetup: xhr => xhr.withCredentials = false });
         hls.loadSource(finalUrl);
         hls.attachMedia(video);
 
@@ -158,8 +154,7 @@ function playChannel(channel) {
 
         hls.on(Hls.Events.ERROR, (event, data) => {
             if (data.fatal) {
-                statusDiv.textContent = "Falhou - Tentando próximo proxy...";
-                setTimeout(nextProxy, 1200); // Tenta próximo automaticamente
+                statusDiv.textContent = "Falhou - Clique em Próximo Proxy";
             }
         });
     } else {
@@ -173,7 +168,7 @@ soundBtn.onclick = () => {
     soundBtn.style.display = "none";
 };
 
-updateProxyInfo();
+updateInfo();
 </script>
 </body>
 </html>
