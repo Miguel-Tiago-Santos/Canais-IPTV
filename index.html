@@ -20,7 +20,7 @@
     .channel:hover{background:#333;}
     .channel.active{background:#0078d7;}
     #status{
-        position:absolute;top:20px;left:370px;background:rgba(0,0,0,0.85);
+        position:absolute;top:20px;left:370px;background:rgba(0,0,0,0.9);
         color:white;padding:12px 18px;border-radius:8px;z-index:70;
     }
     #controls{
@@ -50,7 +50,7 @@
         <div id="status">A carregar RTP 1...</div>
         <div id="controls">
             <div id="proxyInfo">Direct</div>
-            <button onclick="toggleMode()">Alternar Modo / Proxy</button>
+            <button onclick="toggleMode()">Alternar Modo</button>
         </div>
         <video id="video" autoplay playsinline controls></video>
         <button id="soundBtn">🔊 Ativar Som</button>
@@ -58,7 +58,7 @@
 </div>
 
 <script>
-// ==================== PROXIES MELHORADAS ====================
+// ==================== MELHOR CONFIGURAÇÃO POSSÍVEL ====================
 const PROXIES = [
     "https://api.codetabs.com/v1/proxy?quest=",
     "https://allorigins.win/raw?url=",
@@ -68,7 +68,7 @@ const PROXIES = [
 ];
 
 let currentProxy = 0;
-let useProxy = false;   // começa em Direct
+let useProxy = false;
 
 const playlistText = `
 #EXTM3U
@@ -99,7 +99,11 @@ playChannel(channels[0]);
 
 function getUrl(url) {
     if (!useProxy) return url;
-    return PROXIES[currentProxy] + encodeURIComponent(url);
+    let proxy = PROXIES[currentProxy];
+    if (proxy.includes("corsproxy.io")) {
+        return proxy + encodeURIComponent(url);
+    }
+    return proxy + encodeURIComponent(url);
 }
 
 function updateInfo() {
@@ -120,11 +124,8 @@ function parseM3U(text) {
     let name = "Canal";
     for (let line of lines) {
         line = line.trim();
-        if (line.startsWith("#EXTINF")) {
-            name = line.split(',').pop().trim();
-        } else if (line.startsWith("http")) {
-            result.push({name, url: line});
-        }
+        if (line.startsWith("#EXTINF")) name = line.split(',').pop().trim();
+        else if (line.startsWith("http")) result.push({name, url: line});
     }
     return result;
 }
@@ -150,9 +151,7 @@ function reloadCurrentChannel() {
 }
 
 function playChannel(channel) {
-    document.querySelectorAll(".channel").forEach(el => {
-        el.classList.toggle("active", el.textContent === channel.name);
-    });
+    document.querySelectorAll(".channel").forEach(el => el.classList.toggle("active", el.textContent === channel.name));
 
     statusDiv.style.display = "block";
     statusDiv.textContent = `A carregar ${channel.name}...`;
@@ -164,12 +163,7 @@ function playChannel(channel) {
     const finalUrl = getUrl(channel.url);
 
     if (Hls.isSupported()) {
-        hls = new Hls({
-            xhrSetup: function(xhr) {
-                xhr.withCredentials = false;
-            }
-        });
-
+        hls = new Hls({ xhrSetup: xhr => xhr.withCredentials = false });
         hls.loadSource(finalUrl);
         hls.attachMedia(video);
 
@@ -178,10 +172,8 @@ function playChannel(channel) {
             statusDiv.style.display = "none";
         });
 
-        hls.on(Hls.Events.ERROR, (event, data) => {
-            if (data.fatal) {
-                statusDiv.textContent = "Erro - Alternar Modo";
-            }
+        hls.on(Hls.Events.ERROR, () => {
+            statusDiv.textContent = "Erro - Tente Alternar Modo";
         });
     } else {
         video.src = finalUrl;
@@ -193,13 +185,6 @@ soundBtn.onclick = () => {
     video.volume = 1;
     soundBtn.style.display = "none";
 };
-
-video.addEventListener("loadedmetadata", () => {
-    video.play().catch(() => {
-        video.muted = true;
-        soundBtn.style.display = "block";
-    });
-});
 
 updateInfo();
 </script>
