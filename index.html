@@ -9,33 +9,17 @@
     html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:Arial,sans-serif;}
     #app{height:100vh;width:100vw;position:relative;}
     video{width:100vw;height:100vh;object-fit:contain;background:#000;}
-    #sidebar{
-        position:absolute;left:0;top:0;width:340px;height:100vh;
-        background:rgba(17,17,17,0.97);color:white;overflow-y:auto;
-        transform:translateX(-100%);transition:transform .35s;z-index:50;
-    }
+    #sidebar{position:absolute;left:0;top:0;width:340px;height:100vh;background:rgba(17,17,17,0.97);color:white;overflow-y:auto;transform:translateX(-100%);transition:transform .35s;z-index:50;}
     #app:hover #sidebar{transform:translateX(0);}
     #sidebar h2{margin:0;padding:15px;background:#1c1c1c;}
     .channel{padding:14px;cursor:pointer;border-bottom:1px solid #222;}
     .channel:hover{background:#333;}
     .channel.active{background:#0078d7;}
-    #status{
-        position:absolute;top:20px;left:370px;background:rgba(0,0,0,0.9);
-        color:white;padding:12px 18px;border-radius:8px;z-index:70;
-    }
-    #controls{
-        position:absolute;top:20px;right:20px;display:flex;gap:8px;z-index:75;
-    }
-    button, #proxyInfo{
-        background:rgba(0,0,0,0.8);color:#0f0;padding:8px 14px;
-        border:none;border-radius:6px;cursor:pointer;font-size:13px;
-    }
+    #status{position:absolute;top:20px;left:370px;background:rgba(0,0,0,0.9);color:white;padding:12px 18px;border-radius:8px;z-index:70;}
+    #controls{position:absolute;top:20px;right:20px;display:flex;gap:8px;z-index:75;}
+    button, #proxyInfo{background:rgba(0,0,0,0.8);color:#0f0;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;font-size:13px;}
     button:hover{background:rgba(0,0,0,0.95);}
-    #soundBtn{
-        position:absolute;bottom:30px;right:30px;padding:14px 24px;
-        font-size:18px;background:#0078d7;color:white;border:none;
-        border-radius:8px;cursor:pointer;display:none;z-index:80;
-    }
+    #soundBtn{position:absolute;bottom:30px;right:30px;padding:14px 24px;font-size:18px;background:#0078d7;color:white;border:none;border-radius:8px;cursor:pointer;display:none;z-index:80;}
 </style>
 </head>
 <body>
@@ -58,7 +42,7 @@
 </div>
 
 <script>
-// ==================== MELHOR CONFIGURAÇÃO POSSÍVEL ====================
+// ==================== PROXIES ====================
 const PROXIES = [
     "https://api.codetabs.com/v1/proxy?quest=",
     "https://allorigins.win/raw?url=",
@@ -99,16 +83,11 @@ playChannel(channels[0]);
 
 function getUrl(url) {
     if (!useProxy) return url;
-    let proxy = PROXIES[currentProxy];
-    if (proxy.includes("corsproxy.io")) {
-        return proxy + encodeURIComponent(url);
-    }
-    return proxy + encodeURIComponent(url);
+    return PROXIES[currentProxy] + encodeURIComponent(url);
 }
 
 function updateInfo() {
     proxyInfo.textContent = useProxy ? `Proxy ${currentProxy+1}/${PROXIES.length}` : "Direct";
-    proxyInfo.style.color = useProxy ? "#0f0" : "#ff0";
 }
 
 function toggleMode() {
@@ -173,7 +152,7 @@ function playChannel(channel) {
         });
 
         hls.on(Hls.Events.ERROR, () => {
-            statusDiv.textContent = "Erro - Tente Alternar Modo";
+            statusDiv.textContent = "Erro - Tente Alternar Modo novamente";
         });
     } else {
         video.src = finalUrl;
