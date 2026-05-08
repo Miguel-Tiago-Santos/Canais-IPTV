@@ -50,7 +50,7 @@
         <div id="status">A carregar RTP 1...</div>
         <div id="controls">
             <div id="proxyInfo">Direct</div>
-            <button onclick="toggleMode()">Alternar Modo</button>
+            <button onclick="toggleMode()">Alternar Modo / Proxy</button>
         </div>
         <video id="video" autoplay playsinline controls></video>
         <button id="soundBtn">🔊 Ativar Som</button>
@@ -58,16 +58,17 @@
 </div>
 
 <script>
-// ==================== CONFIGURAÇÃO ====================
-let useProxy = false;   // Começa em Direct (melhor no Netlify)
-
+// ==================== PROXIES MELHORADAS ====================
 const PROXIES = [
     "https://api.codetabs.com/v1/proxy?quest=",
     "https://allorigins.win/raw?url=",
-    "https://cors.lol/?url="
+    "https://cors.lol/?url=",
+    "https://corsproxy.io/?",
+    "https://proxy.cors.sh/"
 ];
 
 let currentProxy = 0;
+let useProxy = false;   // começa em Direct
 
 const playlistText = `
 #EXTM3U
@@ -166,8 +167,7 @@ function playChannel(channel) {
         hls = new Hls({
             xhrSetup: function(xhr) {
                 xhr.withCredentials = false;
-            },
-            debug: false
+            }
         });
 
         hls.loadSource(finalUrl);
@@ -180,12 +180,11 @@ function playChannel(channel) {
 
         hls.on(Hls.Events.ERROR, (event, data) => {
             if (data.fatal) {
-                statusDiv.textContent = "Erro - Tente Alternar Modo";
+                statusDiv.textContent = "Erro - Alternar Modo";
             }
         });
     } else {
         video.src = finalUrl;
-        video.play().catch(() => {});
     }
 }
 
