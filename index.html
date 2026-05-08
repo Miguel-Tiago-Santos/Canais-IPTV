@@ -34,7 +34,7 @@
         <div id="status">A carregar RTP 1...</div>
         <div id="controls">
             <div id="proxyInfo">Direct</div>
-            <button onclick="toggleMode()">Alternar Modo</button>
+            <button onclick="nextProxy()">Próximo Proxy</button>
         </div>
         <video id="video" autoplay playsinline controls></video>
         <button id="soundBtn">🔊 Ativar Som</button>
@@ -42,8 +42,9 @@
 </div>
 
 <script>
-// ==================== PROXIES ====================
+// ==================== TODOS OS PROXIES ====================
 const PROXIES = [
+    "", // Direct (sem proxy)
     "https://api.codetabs.com/v1/proxy?quest=",
     "https://allorigins.win/raw?url=",
     "https://cors.lol/?url=",
@@ -51,8 +52,7 @@ const PROXIES = [
     "https://proxy.cors.sh/"
 ];
 
-let currentProxy = 0;
-let useProxy = false;
+let currentIndex = 0;
 
 const playlistText = `
 #EXTM3U
@@ -81,19 +81,20 @@ let channels = parseM3U(playlistText);
 renderChannels();
 playChannel(channels[0]);
 
-function getUrl(url) {
-    if (!useProxy) return url;
-    return PROXIES[currentProxy] + encodeURIComponent(url);
+function getCurrentUrl(url) {
+    const proxy = PROXIES[currentIndex];
+    return proxy ? proxy + encodeURIComponent(url) : url;
 }
 
-function updateInfo() {
-    proxyInfo.textContent = useProxy ? `Proxy ${currentProxy+1}/${PROXIES.length}` : "Direct";
+function updateProxyInfo() {
+    const proxy = PROXIES[currentIndex];
+    proxyInfo.textContent = proxy ? `Proxy ${currentIndex}/${PROXIES.length-1}` : "Direct";
+    proxyInfo.style.color = proxy ? "#0f0" : "#ff0";
 }
 
-function toggleMode() {
-    useProxy = !useProxy;
-    if (useProxy) currentProxy = (currentProxy + 1) % PROXIES.length;
-    updateInfo();
+function nextProxy() {
+    currentIndex = (currentIndex + 1) % PROXIES.length;
+    updateProxyInfo();
     reloadCurrentChannel();
 }
 
@@ -130,7 +131,9 @@ function reloadCurrentChannel() {
 }
 
 function playChannel(channel) {
-    document.querySelectorAll(".channel").forEach(el => el.classList.toggle("active", el.textContent === channel.name));
+    document.querySelectorAll(".channel").forEach(el => 
+        el.classList.toggle("active", el.textContent === channel.name)
+    );
 
     statusDiv.style.display = "block";
     statusDiv.textContent = `A carregar ${channel.name}...`;
@@ -139,10 +142,12 @@ function playChannel(channel) {
     video.pause();
     video.src = "";
 
-    const finalUrl = getUrl(channel.url);
+    const finalUrl = getCurrentUrl(channel.url);
 
     if (Hls.isSupported()) {
-        hls = new Hls({ xhrSetup: xhr => xhr.withCredentials = false });
+        hls = new Hls({
+            xhrSetup: xhr => xhr.withCredentials = false
+        });
         hls.loadSource(finalUrl);
         hls.attachMedia(video);
 
@@ -151,8 +156,11 @@ function playChannel(channel) {
             statusDiv.style.display = "none";
         });
 
-        hls.on(Hls.Events.ERROR, () => {
-            statusDiv.textContent = "Erro - Tente Alternar Modo novamente";
+        hls.on(Hls.Events.ERROR, (event, data) => {
+            if (data.fatal) {
+                statusDiv.textContent = "Falhou - Tentando próximo proxy...";
+                setTimeout(nextProxy, 1200); // Tenta próximo automaticamente
+            }
         });
     } else {
         video.src = finalUrl;
@@ -165,7 +173,7 @@ soundBtn.onclick = () => {
     soundBtn.style.display = "none";
 };
 
-updateInfo();
+updateProxyInfo();
 </script>
 </body>
 </html>
