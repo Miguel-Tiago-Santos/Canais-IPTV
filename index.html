@@ -158,14 +158,77 @@ function playChannel(channel){
         hls.on(Hls.Events.MANIFEST_PARSED, startVideo);
 
         hls.on(Hls.Events.ERROR, function(event, data){
+            console.error("HLS.js error:", data);
             if(data.fatal){
-                console.error("HLS.js fatal error:", data);
-                statusDiv.textContent = "Erro fatal no canal. A tentar reprodução nativa...";
-                video.src = channel.url; // Fallback to native video playback
-                video.addEventListener("loadedmetadata", startVideo, {once:true});
+                switch (data.type) {
+                    case Hls.ErrorTypes.NETWORK_ERROR:
+                        statusDiv.textContent = "Erro de rede fatal. A tentar recuperar...";
+                        hls.recoverMediaError();
+                        break;
+                    case Hls.ErrorTypes.MEDIA_ERROR:
+                        statusDiv.textContent = "Erro de média fatal. A tentar recuperar...";
+                        hls.recoverMediaError();
+                        break;
+                    default:
+                        statusDiv.textContent = "Erro fatal no canal HLS. A tentar reprodução nativa...";
+                        console.log("HLS.js: Fallback para reprodução nativa.");
+                        video.src = channel.url; // Fallback to native video playback
+                        video.addEventListener("loadedmetadata", startVideo, {once:true});
+                        hls.destroy();
+                        break;
+                }
             } else {
-                console.warn("HLS.js error:", data);
+                statusDiv.textContent = "Erro no canal. Tente outro.";
             }
+        });
+
+        // Adicionar diagnóstico para autoplay policy
+        if (navigator.getAutoplayPolicy) {
+            navigator.getAutoplayPolicy('mediaelement').then(policy => {
+                console.log('Autoplay Policy for mediaelement:', policy);
+                if (policy.state === 'denied') {
+                    statusDiv.textContent = "Reprodução automática bloqueada. Toque no vídeo para iniciar.";
+                }
+            });
+        }
+
+        // Adicionar um listener para erros de vídeo nativos
+        video.addEventListener('error', (e) => {
+            console.error('Erro de vídeo nativo:', e);
+            statusDiv.textContent = "Erro na reprodução do vídeo. Tente outro canal.";
+        });
+
+        hls.on(Hls.Events.MEDIA_ATTACHED, function () {
+            console.log("HLS.js: Media attached.");
+        });
+        hls.on(Hls.Events.MEDIA_DETACHED, function () {
+            console.log("HLS.js: Media detached.");
+        });
+        hls.on(Hls.Events.BUFFER_APPENDING, function () {
+            console.log("HLS.js: Buffer appending.");
+        });
+        hls.on(Hls.Events.BUFFER_APPENDED, function () {
+            console.log("HLS.js: Buffer appended.");
+        });
+        hls.on(Hls.Events.FRAG_PARSING_ERROR, function (event, data) {
+            console.error("HLS.js: Fragment parsing error:", data);
+        });
+        hls.on(Hls.Events.NETWORK_ERROR, function (event, data) {
+            console.error("HLS.js: Network error:", data);
+            statusDiv.textContent = "Erro de rede. Verifique a sua conexão.";
+        });
+        hls.on(Hls.Events.BUFFER_STALLED, function () {
+            console.warn("HLS.js: Buffer stalled.");
+            statusDiv.textContent = "Buffer a carregar...";
+        });
+        hls.on(Hls.Events.BUFFER_FULL, function () {
+            console.log("HLS.js: Buffer full.");
+        });
+        hls.on(Hls.Events.LEVEL_LOADED, function (event, data) {
+            console.log("HLS.js: Level loaded.", data);
+        });
+        hls.on(Hls.Events.FRAG_LOADED, function (event, data) {
+            console.log("HLS.js: Fragment loaded.", data);
         });
     } else {
         video.src = channel.url;
