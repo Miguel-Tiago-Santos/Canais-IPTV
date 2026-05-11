@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>IPTV Player</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <style>
 html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:Arial}
@@ -29,7 +30,7 @@ video{width:100vw;height:100vh;object-fit:contain;background:#000}
     </div>
 
     <div id="status">A carregar...</div>
-    <video id="video" autoplay playsinline controls></video>
+    <video id="video" playsinline controls></video>
     <button id="soundBtn">🔊 Ativar Som</button>
 </div>
 
@@ -108,8 +109,10 @@ const soundBtn = document.getElementById("soundBtn");
 
 let hls = null;
 
-renderChannels();
-playChannel(playlist[0]);
+document.addEventListener('DOMContentLoaded', () => {
+    renderChannels();
+    playChannel(playlist[0]);
+});
 
 function renderChannels(){
     channelsDiv.innerHTML = "";
@@ -156,7 +159,12 @@ function playChannel(channel){
 
         hls.on(Hls.Events.ERROR, function(event, data){
             if(data.fatal){
-                statusDiv.textContent = "Erro neste canal. Escolhe outro.";
+                console.error("HLS.js fatal error:", data);
+                statusDiv.textContent = "Erro fatal no canal. A tentar reprodução nativa...";
+                video.src = channel.url; // Fallback to native video playback
+                video.addEventListener("loadedmetadata", startVideo, {once:true});
+            } else {
+                console.warn("HLS.js error:", data);
             }
         });
     } else {
@@ -169,14 +177,14 @@ function startVideo(){
     video.play()
     .then(() => {
         statusDiv.style.display = "none";
-        goFullscreen();
+        // goFullscreen(); // Removed for WebView compatibility
     })
     .catch(() => {
         video.muted = true;
         video.play().then(() => {
             statusDiv.style.display = "none";
             soundBtn.classList.add("available");
-            goFullscreen();
+            // goFullscreen(); // Removed for WebView compatibility
         });
     });
 }
@@ -186,7 +194,7 @@ soundBtn.onclick = () => {
     video.volume = 1;
     video.play();
     soundBtn.classList.remove("available");
-    goFullscreen();
+            // goFullscreen(); // Removed for WebView compatibility
 };
 
 function goFullscreen(){
@@ -195,9 +203,9 @@ function goFullscreen(){
     }
 }
 
-document.body.addEventListener("click", () => {
-    goFullscreen();
-}, {once:true});
+// document.body.addEventListener("click", () => {
+//     // goFullscreen(); // Removed for WebView compatibility
+// }, {once:true}); // Removed for WebView compatibility
 </script>
 </body>
 </html>
