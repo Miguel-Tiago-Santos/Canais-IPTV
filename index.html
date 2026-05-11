@@ -2,7 +2,7 @@
 <html lang="pt">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>IPTV Player</title>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -14,20 +14,23 @@ html,body{
     height:100%;
     background:#000;
     overflow:hidden;
-    font-family:Arial;
+    font-family:Arial, sans-serif;
 }
 
 #app{
     width:100vw;
     height:100vh;
-    position:relative;
     background:#000;
+    position:relative;
+    overflow:hidden;
 }
 
-video, iframe{
+video{
+    position:absolute;
+    inset:0;
     width:100vw;
     height:100vh;
-    border:0;
+    object-fit:contain;
     background:#000;
 }
 
@@ -38,10 +41,10 @@ video, iframe{
     width:340px;
     max-width:85vw;
     height:100vh;
-    background:rgba(17,17,17,.96);
-    color:white;
+    background:rgba(17,17,17,.97);
+    color:#fff;
     overflow-y:auto;
-    z-index:100;
+    z-index:1000;
     transform:translateX(-100%);
     transition:.25s;
 }
@@ -69,43 +72,51 @@ video, iframe{
 
 #menuBtn{
     position:absolute;
-    top:20px;
-    right:20px;
-    z-index:300;
+    top:18px;
+    right:18px;
+    z-index:1100;
     background:#0078d7;
     color:white;
     border:0;
     border-radius:8px;
     padding:12px 16px;
-    font-size:20px;
+    font-size:22px;
 }
 
 #status{
     position:absolute;
-    top:20px;
-    left:20px;
-    right:80px;
+    top:18px;
+    left:18px;
+    right:85px;
+    z-index:900;
     background:rgba(0,0,0,.85);
     color:white;
-    padding:12px 18px;
+    padding:12px 16px;
     border-radius:8px;
-    z-index:200;
+    font-size:16px;
+}
+
+#openRtpBtn{
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    z-index:950;
+    display:none;
+    background:#0078d7;
+    color:#fff;
+    border:0;
+    border-radius:10px;
+    padding:18px 26px;
+    font-size:22px;
+    cursor:pointer;
 }
 </style>
 </head>
 
 <body>
-
 <div id="app">
-
-    <video id="video" autoplay muted playsinline webkit-playsinline></video>
-
-    <iframe
-        id="iframePlayer"
-        allow="autoplay; fullscreen"
-        allowfullscreen
-        style="display:none;">
-    </iframe>
+    <video id="video" autoplay muted playsinline webkit-playsinline preload="auto"></video>
 
     <div id="sidebar">
         <h2>Canais</h2>
@@ -114,54 +125,54 @@ video, iframe{
 
     <div id="status">A carregar...</div>
     <button id="menuBtn">☰</button>
-
+    <button id="openRtpBtn">Abrir RTP Play</button>
 </div>
 
 <script>
 const playlist = [
     {
         name:"RTP 1",
-        type:"iframe",
+        type:"external",
         url:"https://www.rtp.pt/play/direto/rtp1"
     },
     {
         name:"RTP 2",
-        type:"iframe",
+        type:"external",
         url:"https://www.rtp.pt/play/direto/rtp2"
     },
     {
         name:"RTP Notícias",
-        type:"iframe",
+        type:"external",
         url:"https://www.rtp.pt/play/direto/rtp3"
     },
     {
         name:"RTP Memória",
-        type:"iframe",
+        type:"external",
         url:"https://www.rtp.pt/play/direto/rtpmemoria"
     },
     {
         name:"RTP Mundo",
-        type:"iframe",
+        type:"external",
         url:"https://www.rtp.pt/play/direto/rtpinternacional"
     },
     {
         name:"RTP Madeira",
-        type:"iframe",
+        type:"external",
         url:"https://www.rtp.pt/play/direto/rtpmadeira"
     },
     {
         name:"RTP Açores",
-        type:"iframe",
+        type:"external",
         url:"https://www.rtp.pt/play/direto/rtpacores"
     },
     {
         name:"RTP África",
-        type:"iframe",
+        type:"external",
         url:"https://www.rtp.pt/play/direto/rtpafrica"
     },
     {
         name:"RTP ZigZag",
-        type:"iframe",
+        type:"external",
         url:"https://www.rtp.pt/play/zigzag/direto/tv"
     },
     {
@@ -188,23 +199,45 @@ const playlist = [
         name:"Euronews PT",
         type:"hls",
         url:"https://38cf202f635c4e6d9a9ecd1dc805222a.mediatailor.eu-west-1.amazonaws.com/v1/manifest/0547f18649bd788bec7b67b746e47670f558b6b2/production-LiveChannel-6572/aa7d84c5-ed1b-4706-aa89-11c525faf07d/5.m3u8"
+    },
+    {
+        name:"FUEL TV Europe",
+        type:"hls",
+        url:"https://amg01074-fueltv-fueltvemeaen-rakuten-b6j62.amagi.tv/hls/amagi_hls_data_rakutenAA-fueltvemeaen/CDN/master.m3u8"
+    },
+    {
+        name:"TDM Macau PT",
+        type:"hls",
+        url:"https://globallive.tdm.com.mo/ch2/ch2.live/playlist.m3u8"
+    },
+    {
+        name:"TV Cultura",
+        type:"hls",
+        url:"https://player-tvcultura.stream.uol.com.br/live/tvcultura.m3u8"
     }
 ];
 
 const video = document.getElementById("video");
-const iframePlayer = document.getElementById("iframePlayer");
 const channelsDiv = document.getElementById("channels");
 const sidebar = document.getElementById("sidebar");
 const menuBtn = document.getElementById("menuBtn");
 const statusDiv = document.getElementById("status");
+const openRtpBtn = document.getElementById("openRtpBtn");
 
 let hls = null;
+let currentExternalUrl = "";
 
 renderChannels();
-playChannel(playlist[0]);
+playChannel(playlist[9]); // abre SIC por defeito, porque os m3u8 RTP diretos estão a devolver 204
 
-menuBtn.onclick = () => {
+menuBtn.onclick = function(){
     sidebar.classList.toggle("open");
+};
+
+openRtpBtn.onclick = function(){
+    if(currentExternalUrl){
+        window.location.href = currentExternalUrl;
+    }
 };
 
 function renderChannels(){
@@ -214,7 +247,7 @@ function renderChannels(){
         const div = document.createElement("div");
         div.className = "channel";
         div.textContent = channel.name;
-        div.onclick = () => {
+        div.onclick = function(){
             sidebar.classList.remove("open");
             playChannel(channel);
         };
@@ -228,12 +261,7 @@ function setActive(name){
     });
 }
 
-function playChannel(channel){
-    setActive(channel.name);
-
-    statusDiv.style.display = "block";
-    statusDiv.textContent = "A carregar: " + channel.name;
-
+function stopHls(){
     if(hls){
         hls.destroy();
         hls = null;
@@ -241,82 +269,113 @@ function playChannel(channel){
 
     video.pause();
     video.removeAttribute("src");
-    video.style.display = "none";
+    video.load();
+}
 
-    iframePlayer.src = "about:blank";
-    iframePlayer.style.display = "none";
+function playChannel(channel){
+    setActive(channel.name);
+    openRtpBtn.style.display = "none";
+    currentExternalUrl = "";
 
-    if(channel.type === "iframe"){
-        iframePlayer.style.display = "block";
-        iframePlayer.src = channel.url;
-        statusDiv.style.display = "none";
-        goFullscreen();
+    if(channel.type === "external"){
+        stopHls();
+
+        statusDiv.style.display = "block";
+        statusDiv.textContent = channel.name + " abre pela página oficial RTP Play.";
+
+        currentExternalUrl = channel.url;
+        openRtpBtn.textContent = "Abrir " + channel.name;
+        openRtpBtn.style.display = "block";
+
+        // Em WebView/Android, a forma mais fiável é navegar diretamente.
+        // Em alguns WebViews, isto só funciona após toque; por isso fica também o botão.
+        try{
+            window.location.href = channel.url;
+        }catch(e){}
+
         return;
     }
+
+    statusDiv.style.display = "block";
+    statusDiv.textContent = "A carregar: " + channel.name;
+
+    stopHls();
 
     video.style.display = "block";
     video.muted = true;
     video.volume = 0;
 
-    if(Hls.isSupported()){
+    if(window.Hls && Hls.isSupported()){
         hls = new Hls({
             enableWorker:false,
-            lowLatencyMode:false
+            lowLatencyMode:false,
+            backBufferLength:30,
+            maxBufferLength:30,
+            manifestLoadingTimeOut:15000,
+            levelLoadingTimeOut:15000,
+            fragLoadingTimeOut:20000
         });
 
         hls.loadSource(channel.url);
         hls.attachMedia(video);
 
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            video.play().then(() => {
-                statusDiv.style.display = "none";
-                goFullscreen();
-            }).catch(() => {
-                statusDiv.textContent = "Toque no ecrã para iniciar.";
-            });
+        hls.on(Hls.Events.MANIFEST_PARSED, function(){
+            video.play()
+                .then(function(){
+                    statusDiv.style.display = "none";
+                    goFullscreenSafe();
+                })
+                .catch(function(){
+                    statusDiv.textContent = "Toque no ecrã para iniciar.";
+                });
         });
 
         hls.on(Hls.Events.ERROR, function(event, data){
-            if(data.fatal){
+            if(data && data.fatal){
+                statusDiv.style.display = "block";
                 statusDiv.textContent = "Erro neste canal.";
             }
         });
 
     } else {
         video.src = channel.url;
-        video.play().then(() => {
-            statusDiv.style.display = "none";
-            goFullscreen();
-        }).catch(() => {
-            statusDiv.textContent = "Toque no ecrã para iniciar.";
-        });
+
+        video.play()
+            .then(function(){
+                statusDiv.style.display = "none";
+                goFullscreenSafe();
+            })
+            .catch(function(){
+                statusDiv.textContent = "Toque no ecrã para iniciar.";
+            });
     }
 }
 
-function goFullscreen(){
+function goFullscreenSafe(){
     const el = document.documentElement;
 
     if(el.requestFullscreen && !document.fullscreenElement){
-        el.requestFullscreen().catch(()=>{});
+        el.requestFullscreen().catch(function(){});
     } else if(el.webkitRequestFullscreen){
         try{ el.webkitRequestFullscreen(); }catch(e){}
     }
 }
 
-document.body.addEventListener("click", () => {
-    goFullscreen();
-    if(video.style.display !== "none" && video.paused){
-        video.play().catch(()=>{});
+document.body.addEventListener("click", function(){
+    goFullscreenSafe();
+
+    if(video.paused && openRtpBtn.style.display === "none"){
+        video.play().catch(function(){});
     }
 });
 
-document.body.addEventListener("touchstart", () => {
-    goFullscreen();
-    if(video.style.display !== "none" && video.paused){
-        video.play().catch(()=>{});
+document.body.addEventListener("touchstart", function(){
+    goFullscreenSafe();
+
+    if(video.paused && openRtpBtn.style.display === "none"){
+        video.play().catch(function(){});
     }
 }, {passive:true});
 </script>
-
 </body>
 </html>
