@@ -18,24 +18,35 @@ html,body{
 }
 
 #app{
-    width:100vw;
-    height:100vh;
-    background:#000;
-    position:relative;
-    overflow:hidden;
-}
-
-video{
-    position:absolute;
+    position:fixed;
     inset:0;
     width:100vw;
     height:100vh;
-    object-fit:contain;
     background:#000;
+    overflow:hidden;
+}
+
+#video,
+#iframePlayer{
+    position:fixed;
+    inset:0;
+    width:100vw;
+    height:100vh;
+    background:#000;
+    border:0;
+}
+
+#video{
+    object-fit:contain;
+}
+
+#iframePlayer{
+    display:none;
+    z-index:1;
 }
 
 #sidebar{
-    position:absolute;
+    position:fixed;
     left:0;
     top:0;
     width:340px;
@@ -71,7 +82,7 @@ video{
 }
 
 #menuBtn{
-    position:absolute;
+    position:fixed;
     top:18px;
     right:18px;
     z-index:1100;
@@ -84,7 +95,7 @@ video{
 }
 
 #status{
-    position:absolute;
+    position:fixed;
     top:18px;
     left:18px;
     right:85px;
@@ -96,27 +107,48 @@ video{
     font-size:16px;
 }
 
-#openRtpBtn{
-    position:absolute;
+#openDirectBtn{
+    position:fixed;
     left:50%;
-    top:50%;
-    transform:translate(-50%,-50%);
+    bottom:35px;
+    transform:translateX(-50%);
     z-index:950;
     display:none;
     background:#0078d7;
     color:#fff;
     border:0;
     border-radius:10px;
-    padding:18px 26px;
-    font-size:22px;
+    padding:14px 22px;
+    font-size:18px;
     cursor:pointer;
+}
+
+#touchLayer{
+    position:fixed;
+    inset:0;
+    z-index:5;
+    display:none;
+    background:transparent;
+    pointer-events:none;
 }
 </style>
 </head>
 
 <body>
 <div id="app">
+
     <video id="video" autoplay muted playsinline webkit-playsinline preload="auto"></video>
+
+    <iframe
+        id="iframePlayer"
+        allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+        allowfullscreen="true"
+        webkitallowfullscreen="true"
+        mozallowfullscreen="true"
+        referrerpolicy="origin-when-cross-origin">
+    </iframe>
+
+    <div id="touchLayer"></div>
 
     <div id="sidebar">
         <h2>Canais</h2>
@@ -125,54 +157,55 @@ video{
 
     <div id="status">A carregar...</div>
     <button id="menuBtn">☰</button>
-    <button id="openRtpBtn">Abrir RTP Play</button>
+    <button id="openDirectBtn">Abrir direto</button>
+
 </div>
 
 <script>
 const playlist = [
     {
         name:"RTP 1",
-        type:"external",
+        type:"iframe",
         url:"https://www.rtp.pt/play/direto/rtp1"
     },
     {
         name:"RTP 2",
-        type:"external",
+        type:"iframe",
         url:"https://www.rtp.pt/play/direto/rtp2"
     },
     {
         name:"RTP Notícias",
-        type:"external",
+        type:"iframe",
         url:"https://www.rtp.pt/play/direto/rtp3"
     },
     {
         name:"RTP Memória",
-        type:"external",
+        type:"iframe",
         url:"https://www.rtp.pt/play/direto/rtpmemoria"
     },
     {
         name:"RTP Mundo",
-        type:"external",
+        type:"iframe",
         url:"https://www.rtp.pt/play/direto/rtpinternacional"
     },
     {
         name:"RTP Madeira",
-        type:"external",
+        type:"iframe",
         url:"https://www.rtp.pt/play/direto/rtpmadeira"
     },
     {
         name:"RTP Açores",
-        type:"external",
+        type:"iframe",
         url:"https://www.rtp.pt/play/direto/rtpacores"
     },
     {
         name:"RTP África",
-        type:"external",
+        type:"iframe",
         url:"https://www.rtp.pt/play/direto/rtpafrica"
     },
     {
         name:"RTP ZigZag",
-        type:"external",
+        type:"iframe",
         url:"https://www.rtp.pt/play/zigzag/direto/tv"
     },
     {
@@ -218,32 +251,33 @@ const playlist = [
 ];
 
 const video = document.getElementById("video");
+const iframePlayer = document.getElementById("iframePlayer");
 const channelsDiv = document.getElementById("channels");
 const sidebar = document.getElementById("sidebar");
 const menuBtn = document.getElementById("menuBtn");
 const statusDiv = document.getElementById("status");
-const openRtpBtn = document.getElementById("openRtpBtn");
+const openDirectBtn = document.getElementById("openDirectBtn");
 
 let hls = null;
-let currentExternalUrl = "";
+let currentUrl = "";
 
 renderChannels();
-playChannel(playlist[9]); // abre SIC por defeito, porque os m3u8 RTP diretos estão a devolver 204
+playChannel(playlist[0]);
 
 menuBtn.onclick = function(){
     sidebar.classList.toggle("open");
 };
 
-openRtpBtn.onclick = function(){
-    if(currentExternalUrl){
-        window.location.href = currentExternalUrl;
+openDirectBtn.onclick = function(){
+    if(currentUrl){
+        window.location.href = currentUrl;
     }
 };
 
 function renderChannels(){
     channelsDiv.innerHTML = "";
 
-    playlist.forEach(channel => {
+    playlist.forEach(function(channel){
         const div = document.createElement("div");
         div.className = "channel";
         div.textContent = channel.name;
@@ -256,12 +290,12 @@ function renderChannels(){
 }
 
 function setActive(name){
-    document.querySelectorAll(".channel").forEach(el => {
+    document.querySelectorAll(".channel").forEach(function(el){
         el.classList.toggle("active", el.textContent === name);
     });
 }
 
-function stopHls(){
+function stopAll(){
     if(hls){
         hls.destroy();
         hls = null;
@@ -270,36 +304,58 @@ function stopHls(){
     video.pause();
     video.removeAttribute("src");
     video.load();
+
+    iframePlayer.src = "about:blank";
+    iframePlayer.style.display = "none";
+    video.style.display = "none";
+    openDirectBtn.style.display = "none";
 }
 
 function playChannel(channel){
     setActive(channel.name);
-    openRtpBtn.style.display = "none";
-    currentExternalUrl = "";
+    stopAll();
 
-    if(channel.type === "external"){
-        stopHls();
+    currentUrl = channel.url;
 
-        statusDiv.style.display = "block";
-        statusDiv.textContent = channel.name + " abre pela página oficial RTP Play.";
-
-        currentExternalUrl = channel.url;
-        openRtpBtn.textContent = "Abrir " + channel.name;
-        openRtpBtn.style.display = "block";
-
-        // Em WebView/Android, a forma mais fiável é navegar diretamente.
-        // Em alguns WebViews, isto só funciona após toque; por isso fica também o botão.
-        try{
-            window.location.href = channel.url;
-        }catch(e){}
-
+    if(channel.type === "iframe"){
+        playIframe(channel);
         return;
     }
 
+    playHls(channel);
+}
+
+function playIframe(channel){
+    statusDiv.style.display = "block";
+    statusDiv.textContent = "A carregar " + channel.name + " via RTP Play...";
+
+    iframePlayer.style.display = "block";
+
+    /*
+      Parâmetros extra:
+      autoplay=1 e muted=1 podem ser ignorados pela RTP,
+      mas ajudam quando o player aceita query string.
+    */
+    const sep = channel.url.indexOf("?") === -1 ? "?" : "&";
+    iframePlayer.src = channel.url + sep + "autoplay=1&muted=1&fullscreen=1";
+
+    openDirectBtn.textContent = "Abrir " + channel.name + " direto";
+    openDirectBtn.style.display = "block";
+
+    setTimeout(function(){
+        statusDiv.style.display = "none";
+        forceFullscreen();
+    }, 1500);
+
+    setTimeout(function(){
+        statusDiv.style.display = "block";
+        statusDiv.textContent = "Se a RTP não aparecer, o WebView está a bloquear o iframe. Usa o botão direto.";
+    }, 8000);
+}
+
+function playHls(channel){
     statusDiv.style.display = "block";
     statusDiv.textContent = "A carregar: " + channel.name;
-
-    stopHls();
 
     video.style.display = "block";
     video.muted = true;
@@ -323,7 +379,7 @@ function playChannel(channel){
             video.play()
                 .then(function(){
                     statusDiv.style.display = "none";
-                    goFullscreenSafe();
+                    forceFullscreen();
                 })
                 .catch(function(){
                     statusDiv.textContent = "Toque no ecrã para iniciar.";
@@ -339,11 +395,10 @@ function playChannel(channel){
 
     } else {
         video.src = channel.url;
-
         video.play()
             .then(function(){
                 statusDiv.style.display = "none";
-                goFullscreenSafe();
+                forceFullscreen();
             })
             .catch(function(){
                 statusDiv.textContent = "Toque no ecrã para iniciar.";
@@ -351,28 +406,30 @@ function playChannel(channel){
     }
 }
 
-function goFullscreenSafe(){
+function forceFullscreen(){
     const el = document.documentElement;
 
-    if(el.requestFullscreen && !document.fullscreenElement){
-        el.requestFullscreen().catch(function(){});
-    } else if(el.webkitRequestFullscreen){
-        try{ el.webkitRequestFullscreen(); }catch(e){}
-    }
+    try{
+        if(el.requestFullscreen && !document.fullscreenElement){
+            el.requestFullscreen().catch(function(){});
+        }else if(el.webkitRequestFullscreen){
+            el.webkitRequestFullscreen();
+        }
+    }catch(e){}
 }
 
 document.body.addEventListener("click", function(){
-    goFullscreenSafe();
+    forceFullscreen();
 
-    if(video.paused && openRtpBtn.style.display === "none"){
+    if(video.style.display !== "none" && video.paused){
         video.play().catch(function(){});
     }
 });
 
 document.body.addEventListener("touchstart", function(){
-    goFullscreenSafe();
+    forceFullscreen();
 
-    if(video.paused && openRtpBtn.style.display === "none"){
+    if(video.style.display !== "none" && video.paused){
         video.play().catch(function(){});
     }
 }, {passive:true});
