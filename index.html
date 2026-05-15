@@ -35,6 +35,16 @@ video{
     background:#000;
 }
 
+/* zona invisível para abrir menu */
+#sidebarTrigger{
+    position:absolute;
+    left:0;
+    top:0;
+    width:12px;
+    height:100vh;
+    z-index:101;
+}
+
 #sidebar{
     position:absolute;
     left:0;
@@ -46,15 +56,16 @@ video{
     overflow-y:auto;
     z-index:100;
 
-    /* escondida parcialmente */
-    transform:translateX(-360px);
+    /* totalmente escondida */
+    transform:translateX(-100%);
 
     transition:.35s;
     backdrop-filter:blur(4px);
 }
 
-/* abre apenas quando o rato entra na barra */
-#sidebar:hover{
+/* mostra menu */
+#sidebar:hover,
+#sidebarTrigger:hover + #sidebar{
     transform:translateX(0);
 }
 
@@ -142,6 +153,8 @@ video{
 <body>
 
 <div id="app">
+
+    <div id="sidebarTrigger"></div>
 
     <div id="sidebar">
 
