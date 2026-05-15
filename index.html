@@ -2,32 +2,97 @@
 <html lang="pt">
 <head>
 <meta charset="UTF-8">
-<title>TV Launcher</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Launcher MEO Go</title>
+
 <style>
-body{
-  margin:0;
-  height:100vh;
-  background:#111;
-  color:white;
-  font-family:Arial;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    background: #0b0b0b;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
 }
-button{
-  font-size:32px;
-  padding:25px 50px;
-  border:0;
-  border-radius:18px;
-  cursor:pointer;
+
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.container {
+    text-align: center;
+}
+
+.logo {
+    font-size: 54px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.subtitle {
+    font-size: 24px;
+    color: #ccc;
+    margin-bottom: 50px;
+}
+
+button {
+    font-size: 32px;
+    padding: 28px 60px;
+    border: none;
+    border-radius: 18px;
+    background: #00a3ff;
+    color: white;
+    cursor: pointer;
+    margin: 15px;
+}
+
+button:hover {
+    background: #008bd6;
+}
+
+.small {
+    margin-top: 35px;
+    font-size: 18px;
+    color: #999;
 }
 </style>
 </head>
+
 <body>
 
-<button onclick="window.open('https://meogo.meo.pt/','_blank')">
-  Abrir MEO Go
-</button>
+<div class="container">
+    <div class="logo">MEO Go</div>
+    <div class="subtitle">Abrir TV oficial da MEO</div>
+
+    <button onclick="abrirMeoGo()">Abrir MEO Go</button>
+    <button onclick="abrirMeoGoFullscreen()">Abrir em janela dedicada</button>
+
+    <div class="small">
+        Este site apenas abre o serviço oficial MEO Go.
+    </div>
+</div>
+
+<script>
+function abrirMeoGo() {
+    window.open("https://meogo.meo.pt/", "_blank");
+}
+
+function abrirMeoGoFullscreen() {
+    const janela = window.open(
+        "https://meogo.meo.pt/",
+        "_blank",
+        "fullscreen=yes,width=" + screen.width + ",height=" + screen.height
+    );
+
+    if (janela) {
+        janela.moveTo(0, 0);
+        janela.resizeTo(screen.width, screen.height);
+    }
+}
+</script>
 
 </body>
 </html>
