@@ -3,62 +3,100 @@
 <head>
 <meta charset="UTF-8">
 <title>IPTV Player</title>
+
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
 <style>
-html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:Arial}
 
-#app{width:100vw;height:100vh;position:relative;cursor:none}
-#app:hover{cursor:default}
+html,
+body{
+    margin:0;
+    height:100%;
+    background:#000;
+    overflow:hidden;
+    font-family:Arial;
+}
 
-video{width:100vw;height:100vh;object-fit:contain;background:#000}
+#app{
+    width:100vw;
+    height:100vh;
+    position:relative;
+    cursor:none;
+}
+
+#app:hover{
+    cursor:default;
+}
+
+video{
+    width:100vw;
+    height:100vh;
+    object-fit:contain;
+    background:#000;
+}
 
 #sidebar{
     position:absolute;
     left:0;
     top:0;
-    width:380px;
+    width:410px;
     height:100vh;
-    background:rgba(17,17,17,.96);
+    background:rgba(10,10,10,.92);
     color:white;
     overflow-y:auto;
     z-index:100;
     transform:translateX(-100%);
     transition:.35s;
+    backdrop-filter:blur(4px);
 }
 
-#app:hover #sidebar{transform:translateX(0)}
+#app:hover #sidebar{
+    transform:translateX(0);
+}
 
-#sidebar h2{
-    margin:0;
-    padding:15px;
-    background:#1c1c1c;
-    font-size:26px;
+#sidebarHeader{
     display:flex;
-    justify-content:space-between;
     align-items:center;
+    justify-content:space-between;
+    padding:18px;
+    background:#111;
+    border-bottom:1px solid #222;
+}
+
+#sidebarHeader h2{
+    margin:0;
+    font-size:42px;
+    font-weight:bold;
 }
 
 #muteToggle{
-    font-size:16px;
-    padding:8px 12px;
     background:#0078d7;
     color:white;
     border:0;
-    border-radius:6px;
+    border-radius:10px;
+    padding:12px 18px;
+    font-size:24px;
+    font-weight:bold;
     cursor:pointer;
+    min-width:180px;
 }
 
 .channel{
-    padding:18px;
-    border-bottom:1px solid #222;
+    padding:22px;
+    border-bottom:1px solid rgba(255,255,255,.05);
     cursor:pointer;
-    font-size:24px;
-    line-height:1.3;
+    font-size:33px;
+    line-height:1.2;
+    transition:.2s;
 }
 
-.channel:hover{background:#333}
-.channel.active{background:#0078d7}
+.channel:hover{
+    background:#333;
+}
+
+.channel.active{
+    background:#0078d7;
+}
 
 #status{
     position:absolute;
@@ -66,104 +104,142 @@ video{width:100vw;height:100vh;object-fit:contain;background:#000}
     left:20px;
     background:rgba(0,0,0,.85);
     color:white;
-    padding:12px 18px;
-    border-radius:8px;
+    padding:14px 20px;
+    border-radius:10px;
     z-index:200;
-    font-size:18px;
+    font-size:24px;
 }
 
 #soundBtn{
     position:absolute;
     bottom:30px;
     right:30px;
-    padding:14px 24px;
-    font-size:18px;
+    padding:18px 28px;
+    font-size:24px;
     background:#0078d7;
     color:white;
     border:0;
-    border-radius:8px;
+    border-radius:10px;
     cursor:pointer;
     opacity:0;
     pointer-events:none;
     z-index:300;
+    font-weight:bold;
 }
 
 #soundBtn.available{
     opacity:1;
     pointer-events:auto;
 }
+
 </style>
 </head>
 
 <body>
+
 <div id="app">
+
     <div id="sidebar">
-        <h2>
-            <span>Canais</span>
-            <button id="muteToggle">🔊 Som</button>
-        </h2>
+
+        <div id="sidebarHeader">
+
+            <h2>Canais</h2>
+
+            <button id="muteToggle">
+                🔊 Som
+            </button>
+
+        </div>
+
         <div id="channels"></div>
+
     </div>
 
-    <div id="status">A carregar...</div>
-    <video id="video" autoplay playsinline></video>
-    <button id="soundBtn">🔊 Ativar Som</button>
+    <div id="status">
+        A carregar...
+    </div>
+
+    <video
+        id="video"
+        autoplay
+        playsinline>
+    </video>
+
+    <button id="soundBtn">
+        🔊 Ativar Som
+    </button>
+
 </div>
 
 <script>
+
 const playlist = [
-    {
-        name:"Euronews PT",
-        url:"https://38cf202f635c4e6d9a9ecd1dc805222a.mediatailor.eu-west-1.amazonaws.com/v1/manifest/0547f18649bd788bec7b67b746e47670f558b6b2/production-LiveChannel-6572/aa7d84c5-ed1b-4706-aa89-11c525faf07d/5.m3u8"
-    },
-    {
-        name:"SIC",
-        url:"https://d1zx6l1dn8vaj5.cloudfront.net/out/v1/b89cc37caa6d418eb423cf092a2ef970/index.m3u8"
-    },
-    {
-        name:"TVI",
-        url:"https://raw.githubusercontent.com/thomraider12/canaistvpt/main/m3u8s/tvi.m3u8"
-    },
-    {
-        name:"Porto Canal",
-        url:"https://pull-live-156-1.global.ssl.fastly.net/pc5865dc25400thmb-ea6bf03b14fa318f7133/smil:pc1-jhrgyuoqe5865db-68tkgb14fa318f7133f03.smil/playlist.m3u8"
-    },
-    {
-        name:"ARTV",
-        url:"https://playout175.livextend.cloud/livenlin4/_definst_/2liveartvpub2/playlist.m3u8"
-    },
-    {
-        name:"FUEL TV Europe",
-        url:"https://amg01074-fueltv-fueltvemeaen-rakuten-b6j62.amagi.tv/hls/amagi_hls_data_rakutenAA-fueltvemeaen/CDN/master.m3u8"
-    },
-    {
-        name:"TV Cultura",
-        url:"https://player-tvcultura.stream.uol.com.br/live/tvcultura.m3u8"
-    },
-    {
-        name:"Kuriakos Cine",
-        url:"https://w2.manasat.com/kcine/smil:kcine.smil/playlist.m3u8"
-    },
-    {
-        name:"Kuriakos Kids",
-        url:"https://w2.manasat.com/kkids/smil:kkids.smil/playlist.m3u8"
-    },
-    {
-        name:"Kuriakos TV",
-        url:"https://w1.manasat.com/ktv/smil:ktv.smil/playlist.m3u8"
-    },
-    {
-        name:"Rakuten Documentários",
-        url:"https://ead2625dd95b42dabfd015fadcf144e3.mediatailor.eu-west-1.amazonaws.com/v1/master/0547f18649bd788bec7b67b746e47670f558b6b2/production-LiveChannel-6222/master.m3u8"
-    },
-    {
-        name:"Rakuten Família",
-        url:"https://48faa1daf24549fab34594bc5bdd99f2.mediatailor.eu-west-1.amazonaws.com/v1/master/0547f18649bd788bec7b67b746e47670f558b6b2/production-LiveChannel-6213/master.m3u8"
-    },
-    {
-        name:"TDM Macau PT",
-        url:"https://globallive.tdm.com.mo/ch2/ch2.live/playlist.m3u8"
-    }
+
+{
+    name:"Euronews PT",
+    url:"https://38cf202f635c4e6d9a9ecd1dc805222a.mediatailor.eu-west-1.amazonaws.com/v1/manifest/0547f18649bd788bec7b67b746e47670f558b6b2/production-LiveChannel-6572/aa7d84c5-ed1b-4706-aa89-11c525faf07d/5.m3u8"
+},
+
+{
+    name:"SIC",
+    url:"https://d1zx6l1dn8vaj5.cloudfront.net/out/v1/b89cc37caa6d418eb423cf092a2ef970/index.m3u8"
+},
+
+{
+    name:"TVI",
+    url:"https://raw.githubusercontent.com/thomraider12/canaistvpt/main/m3u8s/tvi.m3u8"
+},
+
+{
+    name:"Porto Canal",
+    url:"https://pull-live-156-1.global.ssl.fastly.net/pc5865dc25400thmb-ea6bf03b14fa318f7133/smil:pc1-jhrgyuoqe5865db-68tkgb14fa318f7133f03.smil/playlist.m3u8"
+},
+
+{
+    name:"ARTV",
+    url:"https://playout175.livextend.cloud/livenlin4/_definst_/2liveartvpub2/playlist.m3u8"
+},
+
+{
+    name:"FUEL TV Europe",
+    url:"https://amg01074-fueltv-fueltvemeaen-rakuten-b6j62.amagi.tv/hls/amagi_hls_data_rakutenAA-fueltvemeaen/CDN/master.m3u8"
+},
+
+{
+    name:"TV Cultura",
+    url:"https://player-tvcultura.stream.uol.com.br/live/tvcultura.m3u8"
+},
+
+{
+    name:"Kuriakos Cine",
+    url:"https://w2.manasat.com/kcine/smil:kcine.smil/playlist.m3u8"
+},
+
+{
+    name:"Kuriakos Kids",
+    url:"https://w2.manasat.com/kkids/smil:kkids.smil/playlist.m3u8"
+},
+
+{
+    name:"Kuriakos TV",
+    url:"https://w1.manasat.com/ktv/smil:ktv.smil/playlist.m3u8"
+},
+
+{
+    name:"Rakuten Documentários",
+    url:"https://ead2625dd95b42dabfd015fadcf144e3.mediatailor.eu-west-1.amazonaws.com/v1/master/0547f18649bd788bec7b67b746e47670f558b6b2/production-LiveChannel-6222/master.m3u8"
+},
+
+{
+    name:"Rakuten Família",
+    url:"https://48faa1daf24549fab34594bc5bdd99f2.mediatailor.eu-west-1.amazonaws.com/v1/master/0547f18649bd788bec7b67b746e47670f558b6b2/production-LiveChannel-6213/master.m3u8"
+},
+
+{
+    name:"TDM Macau PT",
+    url:"https://globallive.tdm.com.mo/ch2/ch2.live/playlist.m3u8"
+}
+
 ];
 
 const video = document.getElementById("video");
@@ -175,181 +251,307 @@ const muteToggle = document.getElementById("muteToggle");
 let hls = null;
 
 renderChannels();
+
 playChannel(playlist[0]);
 
 function renderChannels(){
+
     channelsDiv.innerHTML = "";
 
     playlist.forEach(channel => {
+
         const div = document.createElement("div");
+
         div.className = "channel";
+
         div.textContent = channel.name;
+
         div.onclick = () => {
+
             playChannel(channel);
+
             goFullscreen();
+
         };
+
         channelsDiv.appendChild(div);
+
     });
+
 }
 
 function playChannel(channel){
+
     document.querySelectorAll(".channel").forEach(el => {
-        el.classList.toggle("active", el.textContent === channel.name);
+
+        el.classList.toggle(
+            "active",
+            el.textContent === channel.name
+        );
+
     });
 
     statusDiv.style.display = "block";
-    statusDiv.textContent = "A carregar: " + channel.name;
+
+    statusDiv.textContent =
+        "A carregar: " + channel.name;
 
     soundBtn.classList.remove("available");
 
     if(hls){
+
         hls.destroy();
+
         hls = null;
+
     }
 
     video.pause();
+
     video.removeAttribute("src");
+
     video.load();
 
     video.muted = false;
+
     video.volume = 1;
+
     updateMuteButton();
 
     if(Hls.isSupported()){
+
         hls = new Hls({
+
             enableWorker:true,
             lowLatencyMode:true
+
         });
 
         hls.loadSource(channel.url);
+
         hls.attachMedia(video);
 
-        hls.on(Hls.Events.MANIFEST_PARSED, startVideo);
+        hls.on(
+            Hls.Events.MANIFEST_PARSED,
+            startVideo
+        );
 
-        hls.on(Hls.Events.ERROR, function(event, data){
-            if(data.fatal){
-                statusDiv.style.display = "block";
-                statusDiv.textContent = "Erro neste canal. Escolhe outro.";
+        hls.on(
+            Hls.Events.ERROR,
+            function(event,data){
+
+                if(data.fatal){
+
+                    statusDiv.style.display = "block";
+
+                    statusDiv.textContent =
+                        "Erro neste canal.";
+
+                }
+
             }
-        });
-    } else if(video.canPlayType("application/vnd.apple.mpegurl")){
-        video.src = channel.url;
-        video.addEventListener("loadedmetadata", startVideo, {once:true});
-    } else {
-        statusDiv.textContent = "Este browser não suporta HLS.";
+        );
+
     }
+
+    else if(
+        video.canPlayType(
+            "application/vnd.apple.mpegurl"
+        )
+    ){
+
+        video.src = channel.url;
+
+        video.addEventListener(
+            "loadedmetadata",
+            startVideo,
+            {once:true}
+        );
+
+    }
+
+    else{
+
+        statusDiv.textContent =
+            "Browser sem suporte HLS.";
+
+    }
+
 }
 
 function startVideo(){
+
     video.play()
+
     .then(() => {
+
         statusDiv.style.display = "none";
+
         goFullscreen();
+
         updateMuteButton();
+
     })
+
     .catch(() => {
+
         video.muted = true;
+
         updateMuteButton();
 
         video.play()
+
         .then(() => {
+
             statusDiv.style.display = "none";
+
             soundBtn.classList.add("available");
+
             goFullscreen();
+
         })
+
         .catch(() => {
+
             statusDiv.style.display = "block";
-            statusDiv.textContent = "Clica no ecrã para iniciar o vídeo.";
+
+            statusDiv.textContent =
+                "Clica no ecrã para iniciar.";
+
             soundBtn.classList.add("available");
+
         });
-    });
-}
 
-function activateSoundAndFullscreen(){
-    video.muted = false;
-    video.volume = 1;
-
-    video.play()
-    .then(() => {
-        soundBtn.classList.remove("available");
-        statusDiv.style.display = "none";
-        updateMuteButton();
-    })
-    .catch(() => {
-        soundBtn.classList.add("available");
     });
 
-    goFullscreen();
 }
 
-function toggleSound(e){
-    if(e){
-        e.stopPropagation();
+function toggleSound(event){
+
+    if(event){
+        event.stopPropagation();
     }
 
     video.muted = !video.muted;
 
-    if(!video.muted){
-        video.volume = 1;
-        video.play().catch(()=>{});
-        soundBtn.classList.remove("available");
-    } else {
+    if(video.muted){
+
         soundBtn.classList.add("available");
+
+    }
+
+    else{
+
+        video.volume = 1;
+
+        video.play().catch(()=>{});
+
+        soundBtn.classList.remove("available");
+
     }
 
     updateMuteButton();
+
     goFullscreen();
+
 }
 
 function updateMuteButton(){
+
     if(video.muted){
-        muteToggle.textContent = "🔇 Sem som";
-    } else {
-        muteToggle.textContent = "🔊 Som";
+
+        muteToggle.innerHTML =
+            "🔇 Sem Som";
+
     }
+
+    else{
+
+        muteToggle.innerHTML =
+            "🔊 Som";
+
+    }
+
 }
 
-video.onplaying = () => {
-    statusDiv.style.display = "none";
-};
+function activateSound(){
 
-soundBtn.onclick = () => {
-    activateSoundAndFullscreen();
-};
+    video.muted = false;
+
+    video.volume = 1;
+
+    video.play().catch(()=>{});
+
+    soundBtn.classList.remove("available");
+
+    updateMuteButton();
+
+    goFullscreen();
+
+}
+
+soundBtn.onclick = activateSound;
 
 muteToggle.onclick = toggleSound;
 
 document.body.addEventListener("click", () => {
-    activateSoundAndFullscreen();
+
+    activateSound();
+
 });
 
 document.body.addEventListener("dblclick", () => {
+
     goFullscreen();
+
 });
 
 document.addEventListener("keydown", (e) => {
+
     if(e.key === "f" || e.key === "F"){
+
         goFullscreen();
+
     }
 
     if(e.key === "m" || e.key === "M"){
+
         toggleSound();
+
     }
+
 });
 
 function goFullscreen(){
+
     const elem = document.documentElement;
 
     if(!document.fullscreenElement){
+
         if(elem.requestFullscreen){
-            elem.requestFullscreen().catch(()=>{});
-        } else if(elem.webkitRequestFullscreen){
-            elem.webkitRequestFullscreen();
-        } else if(elem.msRequestFullscreen){
-            elem.msRequestFullscreen();
+
+            elem.requestFullscreen()
+            .catch(()=>{});
+
         }
+
+        else if(elem.webkitRequestFullscreen){
+
+            elem.webkitRequestFullscreen();
+
+        }
+
+        else if(elem.msRequestFullscreen){
+
+            elem.msRequestFullscreen();
+
+        }
+
     }
+
 }
+
 </script>
+
 </body>
 </html>
