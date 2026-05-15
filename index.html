@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>IPTV Player</title>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
 <style>
 html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:Arial}
 #app{width:100vw;height:100vh;position:relative;cursor:none}
@@ -17,6 +18,7 @@ video{width:100vw;height:100vh;object-fit:contain;background:#000}
 .channel.active{background:#0078d7}
 #status{position:absolute;top:20px;left:20px;background:rgba(0,0,0,.85);color:white;padding:12px 18px;border-radius:8px;z-index:200}
 #soundBtn{position:absolute;bottom:30px;right:30px;padding:14px 24px;font-size:18px;background:#0078d7;color:white;border:0;border-radius:8px;cursor:pointer;opacity:0;pointer-events:none;z-index:300}
+#soundBtn.available{opacity:1;pointer-events:auto}
 #app:hover #soundBtn.available{opacity:1;pointer-events:auto}
 </style>
 </head>
@@ -29,7 +31,7 @@ video{width:100vw;height:100vh;object-fit:contain;background:#000}
     </div>
 
     <div id="status">A carregar...</div>
-    <video id="video" autoplay playsinline controls></video>
+    <video id="video" autoplay playsinline></video>
     <button id="soundBtn">🔊 Ativar Som</button>
 </div>
 
@@ -72,6 +74,10 @@ const playlist = [
         url:"https://w2.manasat.com/kkids/smil:kkids.smil/playlist.m3u8"
     },
     {
+        name:"Kuriakos TV",
+        url:"https://w1.manasat.com/ktv/smil:ktv.smil/playlist.m3u8"
+    },
+    {
         name:"Rakuten Documentários",
         url:"https://ead2625dd95b42dabfd015fadcf144e3.mediatailor.eu-west-1.amazonaws.com/v1/master/0547f18649bd788bec7b67b746e47670f558b6b2/production-LiveChannel-6222/master.m3u8"
     },
@@ -91,6 +97,7 @@ const statusDiv = document.getElementById("status");
 const soundBtn = document.getElementById("soundBtn");
 
 let hls = null;
+let currentChannel = null;
 
 renderChannels();
 playChannel(playlist[0]);
@@ -102,12 +109,17 @@ function renderChannels(){
         const div = document.createElement("div");
         div.className = "channel";
         div.textContent = channel.name;
-        div.onclick = () => playChannel(channel);
+        div.onclick = () => {
+            playChannel(channel);
+            goFullscreen();
+        };
         channelsDiv.appendChild(div);
     });
 }
 
 function playChannel(channel){
+    currentChannel = channel;
+
     document.querySelectorAll(".channel").forEach(el => {
         el.classList.toggle("active", el.textContent === channel.name);
     });
@@ -125,7 +137,9 @@ function playChannel(channel){
     video.pause();
     video.removeAttribute("src");
     video.load();
+
     video.muted = false;
+    video.volume = 1;
 
     if(Hls.isSupported()){
         hls = new Hls({
@@ -136,16 +150,21 @@ function playChannel(channel){
         hls.loadSource(channel.url);
         hls.attachMedia(video);
 
-        hls.on(Hls.Events.MANIFEST_PARSED, startVideo);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            startVideo();
+        });
 
         hls.on(Hls.Events.ERROR, function(event, data){
             if(data.fatal){
+                statusDiv.style.display = "block";
                 statusDiv.textContent = "Erro neste canal. Escolhe outro.";
             }
         });
-    } else {
+    } else if(video.canPlayType("application/vnd.apple.mpegurl")){
         video.src = channel.url;
         video.addEventListener("loadedmetadata", startVideo, {once:true});
+    } else {
+        statusDiv.textContent = "Este browser não suporta HLS.";
     }
 }
 
@@ -157,31 +176,78 @@ function startVideo(){
     })
     .catch(() => {
         video.muted = true;
-        video.play().then(() => {
+        video.play()
+        .then(() => {
             statusDiv.style.display = "none";
             soundBtn.classList.add("available");
             goFullscreen();
+        })
+        .catch(() => {
+            statusDiv.style.display = "block";
+            statusDiv.textContent = "Clica no ecrã para iniciar o vídeo.";
+            soundBtn.classList.add("available");
         });
     });
 }
 
-soundBtn.onclick = () => {
-    video.muted = false;
-    video.volume = 1;
-    video.play();
-    soundBtn.classList.remove("available");
-    goFullscreen();
+video.onplaying = () => {
+    statusDiv.style.display = "none";
 };
 
-function goFullscreen(){
-    if(!document.fullscreenElement){
-        document.documentElement.requestFullscreen().catch(()=>{});
-    }
-}
+soundBtn.onclick = () => {
+    activateSoundAndFullscreen();
+};
 
 document.body.addEventListener("click", () => {
+    activateSoundAndFullscreen();
+});
+
+document.body.addEventListener("dblclick", () => {
     goFullscreen();
-}, {once:true});
+});
+
+document.addEventListener("keydown", (e) => {
+    if(e.key === "f" || e.key === "F"){
+        goFullscreen();
+    }
+
+    if(e.key === "m" || e.key === "M"){
+        video.muted = !video.muted;
+        if(!video.muted){
+            soundBtn.classList.remove("available");
+        }
+    }
+});
+
+function activateSoundAndFullscreen(){
+    video.muted = false;
+    video.volume = 1;
+
+    video.play()
+    .then(() => {
+        soundBtn.classList.remove("available");
+        statusDiv.style.display = "none";
+    })
+    .catch(() => {
+        soundBtn.classList.add("available");
+    });
+
+    goFullscreen();
+}
+
+function goFullscreen(){
+    const elem = document.documentElement;
+
+    if(!document.fullscreenElement){
+        if(elem.requestFullscreen){
+            elem.requestFullscreen().catch(()=>{});
+        } else if(elem.webkitRequestFullscreen){
+            elem.webkitRequestFullscreen();
+        } else if(elem.msRequestFullscreen){
+            elem.msRequestFullscreen();
+        }
+    }
+}
 </script>
 </body>
 </html>
