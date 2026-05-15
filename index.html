@@ -125,28 +125,6 @@ video{
     font-size:24px;
 }
 
-#soundBtn{
-    position:absolute;
-    bottom:30px;
-    right:30px;
-    padding:18px 28px;
-    font-size:24px;
-    background:#0078d7;
-    color:white;
-    border:0;
-    border-radius:10px;
-    cursor:pointer;
-    opacity:0;
-    pointer-events:none;
-    z-index:300;
-    font-weight:bold;
-}
-
-#soundBtn.available{
-    opacity:1;
-    pointer-events:auto;
-}
-
 </style>
 </head>
 
@@ -181,10 +159,6 @@ video{
         autoplay
         playsinline>
     </video>
-
-    <button id="soundBtn">
-        🔊 Ativar Som
-    </button>
 
 </div>
 
@@ -262,7 +236,6 @@ const playlist = [
 const video = document.getElementById("video");
 const channelsDiv = document.getElementById("channels");
 const statusDiv = document.getElementById("status");
-const soundBtn = document.getElementById("soundBtn");
 const muteToggle = document.getElementById("muteToggle");
 
 let hls = null;
@@ -312,8 +285,6 @@ function playChannel(channel){
 
     statusDiv.textContent =
         "A carregar: " + channel.name;
-
-    soundBtn.classList.remove("available");
 
     if(hls){
 
@@ -422,8 +393,6 @@ function startVideo(){
 
             statusDiv.style.display = "none";
 
-            soundBtn.classList.add("available");
-
             goFullscreen();
 
         })
@@ -434,8 +403,6 @@ function startVideo(){
 
             statusDiv.textContent =
                 "Clica no ecrã para iniciar.";
-
-            soundBtn.classList.add("available");
 
         });
 
@@ -451,19 +418,11 @@ function toggleSound(event){
 
     video.muted = !video.muted;
 
-    if(video.muted){
-
-        soundBtn.classList.add("available");
-
-    }
-
-    else{
+    if(!video.muted){
 
         video.volume = 1;
 
         video.play().catch(()=>{});
-
-        soundBtn.classList.remove("available");
 
     }
 
@@ -499,15 +458,11 @@ function activateSound(){
 
     video.play().catch(()=>{});
 
-    soundBtn.classList.remove("available");
-
     updateMuteButton();
 
     goFullscreen();
 
 }
-
-soundBtn.onclick = activateSound;
 
 muteToggle.onclick = toggleSound;
 
